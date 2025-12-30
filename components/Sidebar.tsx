@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Category, VideoFile } from '../types';
 import { LayoutGrid, Sparkles, Settings } from 'lucide-react';
 import { ICONS } from '../constants';
@@ -10,7 +10,8 @@ interface SidebarProps {
   onAutoOrganize: () => void;
   onManageCategories: () => void;
   isOrganizing: boolean;
-  videos: VideoFile[]; // Changed from totalVideos to full list
+  videos: VideoFile[];
+  onDropOnCategory: (videoId: string, categoryName: string) => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ 
@@ -20,9 +21,11 @@ const Sidebar: React.FC<SidebarProps> = ({
   onAutoOrganize,
   onManageCategories,
   isOrganizing,
-  videos
+  videos,
+  onDropOnCategory
 }) => {
-  
+  const [dragOverCategory, setDragOverCategory] = useState<string | null>(null);
+
   const getCategoryCount = (catName: string) => {
     if (catName === 'All') return videos.length;
     if (catName === 'Favoritos') return videos.filter(v => v.isFavorite).length;
@@ -30,6 +33,26 @@ const Sidebar: React.FC<SidebarProps> = ({
       return videos.filter(v => v.categories.length === 0 || v.categories.includes('Sem Categoria')).length;
     }
     return videos.filter(v => v.categories.includes(catName)).length;
+  };
+
+  const handleDragOver = (e: React.DragEvent, categoryName: string) => {
+    e.preventDefault();
+    if (categoryName !== 'All' && categoryName !== 'Sem Categoria' && categoryName !== 'Favoritos') {
+        setDragOverCategory(categoryName);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverCategory(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, categoryName: string) => {
+    e.preventDefault();
+    setDragOverCategory(null);
+    const videoId = e.dataTransfer.getData('videoId');
+    if (videoId && categoryName !== 'All') {
+      onDropOnCategory(videoId, categoryName);
+    }
   };
 
   return (
@@ -78,10 +101,13 @@ const Sidebar: React.FC<SidebarProps> = ({
 
         <button
           onClick={() => onSelectCategory('Favoritos')}
+          onDragOver={(e) => handleDragOver(e, 'Favoritos')}
+          onDragLeave={handleDragLeave}
+          onDrop={(e) => handleDrop(e, 'Favoritos')}
           className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
             activeCategory === 'Favoritos' 
               ? 'bg-slate-800 text-white' 
-              : 'text-slate-400 hover:text-orange-400 hover:bg-slate-800/50'
+              : dragOverCategory === 'Favoritos' ? 'bg-orange-500/20 text-orange-200 border border-orange-500/50' : 'text-slate-400 hover:text-orange-400 hover:bg-slate-800/50'
           }`}
         >
           <div className="flex items-center gap-3">
@@ -108,14 +134,20 @@ const Sidebar: React.FC<SidebarProps> = ({
 
         {categories.map((category) => {
           const count = getCategoryCount(category.name);
+          const isDragTarget = dragOverCategory === category.name;
           return (
             <button
               key={category.id}
               onClick={() => onSelectCategory(category.name)}
+              onDragOver={(e) => handleDragOver(e, category.name)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, category.name)}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-colors group ${
-                activeCategory === category.name 
-                  ? 'bg-slate-800 text-white' 
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                isDragTarget
+                  ? 'bg-indigo-500/30 text-white ring-1 ring-indigo-500'
+                  : activeCategory === category.name 
+                    ? 'bg-slate-800 text-white' 
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
               <div className="flex items-center gap-3">

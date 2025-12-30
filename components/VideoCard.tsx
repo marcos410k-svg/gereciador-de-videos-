@@ -73,6 +73,12 @@ const VideoCard: React.FC<VideoCardProps> = ({
     setCurrentFrameIndex(0);
   };
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData('videoId', video.id);
+    e.dataTransfer.effectAllowed = 'copy';
+    // Adiciona uma imagem fantasma personalizada se desejar, ou deixa o padrão
+  };
+
   useEffect(() => {
     return () => { 
       if (timeoutRef.current) clearTimeout(timeoutRef.current); 
@@ -92,7 +98,9 @@ const VideoCard: React.FC<VideoCardProps> = ({
 
   return (
     <div 
-      className={`group relative bg-slate-800/40 rounded-xl overflow-hidden border transition-all duration-200 hover:shadow-xl ${
+      draggable
+      onDragStart={handleDragStart}
+      className={`group relative bg-slate-800/40 rounded-xl overflow-hidden border transition-all duration-200 hover:shadow-xl cursor-grab active:cursor-grabbing ${
         isSelected ? 'border-indigo-500 ring-1 ring-indigo-500/50 bg-indigo-500/10' : 'border-slate-700/50 hover:border-indigo-500/50'
       }`}
       onMouseEnter={handleMouseEnter}
@@ -116,7 +124,7 @@ const VideoCard: React.FC<VideoCardProps> = ({
         <Flame className="w-5 h-5" fill={video.isFavorite ? "currentColor" : "none"} strokeWidth={video.isFavorite ? 0 : 2} />
       </button>
 
-      <div className="aspect-video relative overflow-hidden bg-slate-900 cursor-pointer" onClick={() => onPlay(video)}>
+      <div className="aspect-video relative overflow-hidden bg-slate-900" onClick={() => onPlay(video)}>
         {currentImage ? (
           <img 
             src={`data:image/jpeg;base64,${currentImage}`} 

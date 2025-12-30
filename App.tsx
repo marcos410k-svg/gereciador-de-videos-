@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { 
-  Plus, Search, UploadCloud, FolderOpen, Trash2, X, CheckSquare, FolderPlus
+  Plus, Search, UploadCloud, FolderOpen, Trash2, X, CheckSquare, FolderPlus, Tag
 } from 'lucide-react';
 import { VideoFile, Category } from './types';
 import { DEFAULT_CATEGORIES, CATEGORY_COLORS } from './constants';
@@ -236,6 +236,30 @@ const App: React.FC = () => {
     }
   };
 
+  const handleDropOnCategory = (videoId: string, categoryName: string) => {
+      if (categoryName === 'Favoritos') {
+        setVideos(prev => prev.map(v => v.id === videoId ? { ...v, isFavorite: true } : v));
+      } else {
+        setVideos(prev => prev.map(v => {
+            if (v.id === videoId && !v.categories.includes(categoryName)) {
+                return { ...v, categories: [...v.categories, categoryName] };
+            }
+            return v;
+        }));
+      }
+  };
+
+  const handleBulkAddCategory = (categoryName: string) => {
+    if (!categoryName) return;
+    setVideos(prev => prev.map(v => {
+        if (selectedIds.has(v.id) && !v.categories.includes(categoryName)) {
+            return { ...v, categories: [...v.categories, categoryName] };
+        }
+        return v;
+    }));
+    // Não limpa a seleção para permitir adicionar mais categorias se quiser
+  };
+
   const filteredVideos = videos.filter(video => {
     let matchesCategory = false;
     if (activeCategory === 'All') matchesCategory = true;
@@ -259,22 +283,44 @@ const App: React.FC = () => {
         onManageCategories={() => setShowCategoryManager(true)}
         isOrganizing={isOrganizing}
         videos={videos}
+        onDropOnCategory={handleDropOnCategory}
       />
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
         <header className="h-20 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md flex items-center px-8 shrink-0 z-10">
           {selectedIds.size > 0 ? (
-            <div className="flex-1 flex items-center justify-between bg-indigo-500/5 px-4 py-2 rounded-xl border border-indigo-500/20">
+            <div className="flex-1 flex items-center justify-between bg-indigo-500/5 px-4 py-2 rounded-xl border border-indigo-500/20 animate-in fade-in slide-in-from-top-4 duration-200">
               <div className="flex items-center gap-4">
                 <button onClick={() => setSelectedIds(new Set())} className="p-2 text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
                 <span className="text-white font-medium">{selectedIds.size} selecionados</span>
                 <button onClick={handleSelectAll} className="text-sm flex items-center gap-2 text-slate-400 hover:text-white"><CheckSquare className="w-4 h-4" /> Todos</button>
               </div>
-              <button onClick={() => {
-                  if (window.confirm('Excluir selecionados?')) {
-                      setVideos(prev => prev.filter(v => !selectedIds.has(v.id)));
-                      setSelectedIds(new Set());
-                  }
-              }} className="flex items-center gap-2 px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-bold"><Trash2 className="w-4 h-4" /> Excluir</button>
+              
+              <div className="flex items-center gap-3">
+                 <div className="relative group">
+                    <button className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-medium transition-colors">
+                        <Tag className="w-4 h-4" /> Adicionar Categoria
+                    </button>
+                    <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl py-1 hidden group-hover:block z-50 max-h-64 overflow-y-auto">
+                        {categories.filter(c => c.name !== 'Sem Categoria').map(cat => (
+                            <button
+                                key={cat.id}
+                                onClick={() => handleBulkAddCategory(cat.name)}
+                                className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white flex items-center gap-2"
+                            >
+                                <div className={`w-2 h-2 rounded-full ${cat.color}`} />
+                                {cat.name}
+                            </button>
+                        ))}
+                    </div>
+                 </div>
+
+                 <button onClick={() => {
+                    if (window.confirm('Excluir selecionados?')) {
+                        setVideos(prev => prev.filter(v => !selectedIds.has(v.id)));
+                        setSelectedIds(new Set());
+                    }
+                 }} className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-bold ml-2"><Trash2 className="w-4 h-4" /> Excluir</button>
+              </div>
             </div>
           ) : (
             <>
